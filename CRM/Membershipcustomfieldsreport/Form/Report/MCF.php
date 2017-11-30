@@ -44,7 +44,7 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
 
   protected $_summary = NULL;
 
-  protected $_customGroupExtends = array('Individual','Membership', 'Contribution');
+  protected $_customGroupExtends = array('Individual', 'Membership', 'Contribution');
   protected $_customGroupGroupBy = FALSE;
 
   /**
