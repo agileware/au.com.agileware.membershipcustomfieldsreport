@@ -351,6 +351,134 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
   }
 
   /**
+   * Format custom values.
+   *
+   * @param mixed $value
+   * @param array $customField
+   * @param array $fieldValueMap
+   *
+   * @return float|string|void
+   */
+  public function formatCustomValues($value, $customField, $fieldValueMap) {
+    if (CRM_Utils_System::isNull($value)) {
+      return NULL;
+    }
+
+    $htmlType = $customField['html_type'];
+
+    switch ($customField['data_type']) {
+      case 'Boolean':
+        if ($value == '1') {
+          $retValue = ts('Yes');
+        }
+        else {
+          $retValue = ts('No');
+        }
+        break;
+
+      case 'Link':
+        $retValue = CRM_Utils_System::formatWikiURL($value);
+        break;
+
+      case 'File':
+        $retValue = $value;
+        break;
+
+      case 'Memo':
+        $retValue = $value;
+        break;
+
+      case 'Float':
+        if ($htmlType == 'Text') {
+          $retValue = (float) $value;
+          break;
+        }
+      case 'Money':
+        if ($htmlType == 'Text') {
+          $retValue = CRM_Utils_Money::format($value, NULL, '%a');
+          break;
+        }
+      case 'String':
+      case 'Int':
+        if (in_array($htmlType, array(
+          'Text',
+          'TextArea',
+        ))) {
+          $retValue = $value;
+          break;
+        }
+        else {
+          $customField['options'] = CRM_Core_BAO_CustomOption::getCustomOption($customField['id']);
+          $retValue = $fieldValueMap[$customField['option_group_id']][$value];
+          break;
+        }
+
+      case 'StateProvince':
+      case 'Country':
+
+        switch ($htmlType) {
+          case 'Multi-Select Country':
+            $value = explode(CRM_Core_DAO::VALUE_SEPARATOR, $value);
+            $customData = array();
+            foreach ($value as $val) {
+              if ($val) {
+                $customData[] = CRM_Core_PseudoConstant::country($val, FALSE);
+              }
+            }
+            $retValue = implode(', ', $customData);
+            break;
+
+          case 'Select Country':
+            $retValue = CRM_Core_PseudoConstant::country($value, FALSE);
+            break;
+
+          case 'Select State/Province':
+            $retValue = CRM_Core_PseudoConstant::stateProvince($value, FALSE);
+            break;
+
+          case 'Multi-Select State/Province':
+            $value = explode(CRM_Core_DAO::VALUE_SEPARATOR, $value);
+            $customData = array();
+            foreach ($value as $val) {
+              if ($val) {
+                $customData[] = CRM_Core_PseudoConstant::stateProvince($val, FALSE);
+              }
+            }
+            $retValue = implode(', ', $customData);
+            break;
+
+          case 'Select':
+          case 'Radio':
+          case 'Autocomplete-Select':
+            $retValue = $fieldValueMap[$customField['option_group_id']][$value];
+            break;
+
+          case 'CheckBox':
+          case 'AdvMulti-Select':
+          case 'Multi-Select':
+            $value = explode(CRM_Core_DAO::VALUE_SEPARATOR, $value);
+            $customData = array();
+            foreach ($value as $val) {
+              if ($val) {
+                $customData[] = $fieldValueMap[$customField['option_group_id']][$val];
+              }
+            }
+            $retValue = implode(', ', $customData);
+            break;
+
+          default:
+            $retValue = $value;
+        }
+        break;
+
+      default:
+        $retValue = $value;
+    }
+
+    return $retValue;
+  }
+
+  /**
    * Alter display of rows.
    *
    * Iterate through the rows retrieved via SQL and make changes for display purposes,
