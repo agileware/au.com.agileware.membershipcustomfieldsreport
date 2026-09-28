@@ -1,5 +1,102 @@
-Custom CiviCRM Report. Provides membership report with support of filtering/showing custom fields of Individual contact.
+# Memberships with Contact Custom Fields Report (au.com.agileware.membershipcustomfieldsreport)
 
-License AGPL-3.0, http://www.gnu.org/licenses/agpl-3.0.html
+This is a [CiviCRM](https://civicrm.org) extension that adds an enhanced Membership Detail
+report. The standard CiviCRM "Membership Detail Report" does not let you filter or display
+custom fields attached to Individual contacts, Memberships, or Contributions. This extension
+provides a new report template, "Memberships with Contact Custom Fields Report", which extends
+the standard membership report to expose those custom fields as selectable columns and filters,
+alongside contact, address, email, phone, membership, membership status, contribution/payment,
+and (where CiviCampaign is enabled) campaign details.
 
-For CiviCRM development and support, contact Agileware at https://agileware.com.au/contact
+The extension is licensed under [AGPL-3.0](LICENSE.txt).
+
+## Usage
+
+Once installed, a new report is available from **Reports > Search > Memberships with Contact
+Custom Fields Report** (or via CiviCRM's report listing), report URL
+`civicrm/au.com.agileware.membershipcustomfieldsreport/MCF`.
+
+The report supports the following, in addition to the standard CiviCRM report criteria/filter
+UI:
+
+* **Contact fields** - basic contact fields, plus any custom fields attached to the
+  **Individual** contact type.
+* **Membership fields** - membership type, start/join/end dates, source, membership owner ID,
+  plus any custom fields attached to **Membership**, filterable by membership type and
+  membership status.
+* **Membership status** - the current status of each membership, filterable by status.
+* **Contact address, email and phone** - selectable columns for the contact's primary address,
+  email and phone.
+* **Contribution/payment fields** - financial type, contribution status, payment instrument,
+  transaction ID, receive/receipt dates, fee/net/total amount (with a sum statistic), currency,
+  plus any custom fields attached to **Contribution**. These are joined via the membership's
+  linked payment(s), so a membership can appear multiple times if it has more than one linked
+  contribution.
+* **Campaign** - if the CiviCampaign component is enabled and active campaigns exist, a Campaign
+  column and filter are added to the membership fields.
+
+As with other CiviCRM reports, results can be grouped, sorted, exported (CSV/PDF), and saved or
+scheduled like any standard report instance.
+
+## Special configuration requirements
+
+No special configuration, credentials, or setup is required. Simply enable the extension and
+the report template becomes available. The **CiviMember** component must be enabled (the report
+is registered against it); the Contribution/payment columns rely on the **CiviContribute**
+component, and the Campaign column/filter only appear if **CiviCampaign** is enabled and has
+active campaigns.
+
+## Requirements
+
+* CiviCRM 5.82+ (as declared in `info.xml`; earlier versions may work but are untested)
+* CiviMember component enabled
+
+## Installation (Web UI)
+
+Learn more about installing CiviCRM extensions in the [CiviCRM Sysadmin
+Guide](https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/).
+
+## Installation (CLI, Zip)
+
+Sysadmins and developers may download the `.zip` file for this extension and install it with the
+command-line tool [cv](https://github.com/civicrm/cv).
+
+```bash
+cd <extension-dir>
+cv dl au.com.agileware.membershipcustomfieldsreport@https://github.com/agileware/au.com.agileware.membershipcustomfieldsreport/archive/master.zip
+```
+
+## Installation (CLI, Git)
+
+Sysadmins and developers may clone the [Git](https://en.wikipedia.org/wiki/Git) repo for this
+extension and install it with the command-line tool [cv](https://github.com/civicrm/cv).
+
+```bash
+git clone https://github.com/agileware/au.com.agileware.membershipcustomfieldsreport.git
+cv en membershipcustomfieldsreport
+```
+
+## Credits and acknowledgements
+
+This extension was originally developed by Alok Patel, and has since been maintained and
+extended by Agileware.
+
+# About the Authors
+
+This CiviCRM extension was developed by the team at
+[Agileware](https://agileware.com.au).
+
+[Agileware](https://agileware.com.au) provide a range of CiviCRM
+services including:
+
+* CiviCRM migration
+* CiviCRM integration
+* CiviCRM extension development
+* CiviCRM support
+* CiviCRM hosting
+* CiviCRM remote training services
+
+Support your Australian [CiviCRM](https://civicrm.org) developers,
+[contact Agileware](https://agileware.com.au/contact) today!
+
+![Agileware](logo/agileware-logo.png)
