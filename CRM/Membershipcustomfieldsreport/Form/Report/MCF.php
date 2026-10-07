@@ -44,6 +44,13 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
 
   protected $_summary = NULL;
 
+  /**
+   * Active campaigns, keyed by ID, when CiviCampaign is enabled.
+   *
+   * @var array
+   */
+  protected $activeCampaigns = [];
+
   protected $_customGroupExtends = ['Individual', 'Membership', 'Contribution'];
   protected $_customGroupGroupBy = FALSE;
 
@@ -102,7 +109,10 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
             'title' => ts('Join Date'),
             'default' => TRUE,
           ],
-          'source' => ['title' => 'Source'],
+          'membership_source' => [
+            'name' => 'source',
+            'title' => ts('Membership Source'),
+          ],
         ],
         'filters' => [
           'join_date' => ['operatorType' => CRM_Report_Form::OP_DATE],
@@ -123,6 +133,7 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
         'order_bys' => [
           'membership_type_id' => [
             'title' => ts('Membership Type'),
+            'type' => CRM_Utils_Type::T_INT,
             'default' => '0',
             'default_weight' => '1',
             'default_order' => 'ASC',
@@ -152,6 +163,10 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
             'type' => CRM_Utils_Type::T_INT,
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => CRM_Member_PseudoConstant::membershipStatus(NULL, NULL, 'label'),
+          ],
+          'is_current_member' => [
+            'title' => ts('Is Current Member'),
+            'type' => CRM_Utils_Type::T_BOOLEAN,
           ],
         ],
         'grouping' => 'member-fields',
@@ -241,14 +256,17 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
     if ($campaignEnabled && !empty($this->activeCampaigns)) {
       $this->_columns['civicrm_membership']['fields']['campaign_id'] = [
         'title' => ts('Campaign'),
-        'default' => 'false',
+        'default' => FALSE,
       ];
       $this->_columns['civicrm_membership']['filters']['campaign_id'] = [
         'title' => ts('Campaign'),
         'operatorType' => CRM_Report_Form::OP_MULTISELECT,
         'options' => $this->activeCampaigns,
       ];
-      $this->_columns['civicrm_membership']['order_bys']['campaign_id'] = ['title' => ts('Campaign')];
+      $this->_columns['civicrm_membership']['order_bys']['campaign_id'] = [
+        'title' => ts('Campaign'),
+        'type' => CRM_Utils_Type::T_INT,
+      ];
 
     }
 
@@ -262,7 +280,7 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
   }
 
   public function select() {
-    $select = $this->_columnHeaders = [];
+    $select = $this->_columnHeaders = $this->_selectAliases = [];
 
     foreach ($this->_columns as $tableName => $table) {
       if (array_key_exists('fields', $table)) {
@@ -278,6 +296,8 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
               $this->_contribField = TRUE;
             }
             $select[] = "{$field['dbAlias']} as {$tableName}_{$fieldName}";
+            // Needed by CRM_Report_Form::sectionTotals() when Section Headers are used.
+            $this->_selectAliases[] = "{$tableName}_{$fieldName}";
             if (array_key_exists('title', $field)) {
               $this->_columnHeaders["{$tableName}_{$fieldName}"]['title'] = $field['title'];
             }
@@ -348,6 +368,69 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
     $this->formatDisplay($rows);
     $this->doTemplateAssignment($rows);
     $this->endPostProcess($rows);
+  }
+
+  /**
+   * Build array of section totals for multi-level Section Headers.
+   *
+   * This duplicates CRM_Report_Form::sectionTotals(), which never
+   * increments the loop counter used to detect the lowest-level section
+   * alias. That means every alias - not just the higher-level ones - takes
+   * the "roll count into total" branch below, reading $totals[$key] before
+   * it has been initialised for that key and triggering an "Undefined
+   * array key" warning under PHP 8.1+ whenever two or more columns are
+   * used as Section Headers at once. The running total ends up correct
+   * either way (each key is only encountered once, since the query is
+   * grouped by all section aliases), so the only fix needed here is to
+   * default a missing total to 0 instead of reading it unset.
+   */
+  public function sectionTotals() {
+    if (empty($this->_selectAliases)) {
+      return;
+    }
+
+    if (!empty($this->_sections)) {
+      $select = str_ireplace('SELECT SQL_CALC_FOUND_ROWS ', 'SELECT ', $this->_select);
+      $sql = "{$select} {$this->_from} {$this->_where} {$this->_groupBy} {$this->_having} {$this->_orderBy}";
+
+      $sectionAliases = array_keys($this->_sections);
+
+      $ifnulls = [];
+      foreach (array_merge($sectionAliases, $this->_selectAliases) as $alias) {
+        $ifnulls[] = "ifnull($alias, '') as $alias";
+      }
+      $this->_select = "SELECT " . implode(", ", $ifnulls);
+      $this->_select = CRM_Contact_BAO_Query::appendAnyValueToSelect($ifnulls, $sectionAliases);
+
+      $query = $this->_select .
+        ", count(*) as ct from ($sql) as subquery group by " .
+        implode(", ", $sectionAliases);
+
+      $totals = [];
+      $dao = CRM_Core_DAO::executeQuery($query);
+      while ($dao->fetch()) {
+        $rows[0] = $dao->toArray();
+        $this->alterDisplay($rows);
+        $this->alterCustomDataDisplay($rows);
+        $row = $rows[0];
+
+        $values = [];
+        $i = 1;
+        $aliasCount = count($sectionAliases);
+        foreach ($sectionAliases as $alias) {
+          $values[] = $row[$alias];
+          $key = implode(CRM_Core_DAO::VALUE_SEPARATOR, $values);
+          if ($i == $aliasCount) {
+            $totals[$key] = $dao->ct;
+          }
+          else {
+            $totals[$key] = ($totals[$key] ?? 0) + $dao->ct;
+          }
+          $i++;
+        }
+      }
+      $this->assign('sectionTotals', $totals);
+    }
   }
 
   /**
@@ -528,23 +611,35 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
         }
       }
 
+      // Always assign an explicit value (rather than leaving a null) so that Section Headers
+      // and their totals, which key on this value, behave consistently for rows with no value.
       if (array_key_exists('civicrm_membership_membership_type_id', $row)) {
-        if ($value = $row['civicrm_membership_membership_type_id']) {
-          $rows[$rowNum]['civicrm_membership_membership_type_id'] = CRM_Member_PseudoConstant::membershipType($value, FALSE);
+        $value = $row['civicrm_membership_membership_type_id'];
+        $rows[$rowNum]['civicrm_membership_membership_type_id'] = $value ? CRM_Member_PseudoConstant::membershipType($value, FALSE) : '';
+        $entryFound = TRUE;
+      }
+
+      // Core's alter_display handling (see getAddressColumns()) already converts these to names
+      // when rendering the report, so only convert a raw ID, which is what
+      // CRM_Report_Form::sectionTotals() passes in when building Section Header totals.
+      if (array_key_exists('civicrm_address_address_state_province_id', $row)) {
+        $value = $row['civicrm_address_address_state_province_id'];
+        if (is_numeric($value)) {
+          $rows[$rowNum]['civicrm_address_address_state_province_id'] = CRM_Core_PseudoConstant::stateProvince($value, FALSE);
+        }
+        elseif ($value === NULL) {
+          $rows[$rowNum]['civicrm_address_address_state_province_id'] = '';
         }
         $entryFound = TRUE;
       }
 
-      if (array_key_exists('civicrm_address_state_province_id', $row)) {
-        if ($value = $row['civicrm_address_state_province_id']) {
-          $rows[$rowNum]['civicrm_address_state_province_id'] = CRM_Core_PseudoConstant::stateProvince($value, FALSE);
+      if (array_key_exists('civicrm_address_address_country_id', $row)) {
+        $value = $row['civicrm_address_address_country_id'];
+        if (is_numeric($value)) {
+          $rows[$rowNum]['civicrm_address_address_country_id'] = CRM_Core_PseudoConstant::country($value, FALSE);
         }
-        $entryFound = TRUE;
-      }
-
-      if (array_key_exists('civicrm_address_country_id', $row)) {
-        if ($value = $row['civicrm_address_country_id']) {
-          $rows[$rowNum]['civicrm_address_country_id'] = CRM_Core_PseudoConstant::country($value, FALSE);
+        elseif ($value === NULL) {
+          $rows[$rowNum]['civicrm_address_address_country_id'] = '';
         }
         $entryFound = TRUE;
       }
@@ -577,10 +672,9 @@ class CRM_Membershipcustomfieldsreport_Form_Report_MCF extends CRM_Report_Form {
 
       // Convert campaign_id to campaign title
       if (array_key_exists('civicrm_membership_campaign_id', $row)) {
-        if ($value = $row['civicrm_membership_campaign_id']) {
-          $rows[$rowNum]['civicrm_membership_campaign_id'] = $this->activeCampaigns[$value];
-          $entryFound = TRUE;
-        }
+        $value = $row['civicrm_membership_campaign_id'];
+        $rows[$rowNum]['civicrm_membership_campaign_id'] = $value ? ($this->activeCampaigns[$value] ?? $value) : '';
+        $entryFound = TRUE;
       }
       $entryFound = $this->alterDisplayAddressFields($row, $rows, $rowNum, 'member/detail', 'List all memberships(s) for this ') ? TRUE : $entryFound;
       $entryFound = $this->alterDisplayContactFields($row, $rows, $rowNum, 'member/detail', 'List all memberships(s) for this ') ? TRUE : $entryFound;
