@@ -76,11 +76,6 @@ git clone https://github.com/agileware/au.com.agileware.membershipcustomfieldsre
 cv en membershipcustomfieldsreport
 ```
 
-## Credits and acknowledgements
-
-This extension was originally developed by Alok Patel, and has since been maintained and
-extended by Agileware.
-
 # About the Authors
 
 This CiviCRM extension was developed by the team at
