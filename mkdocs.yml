@@ -1,0 +1,26 @@
+site_name: Memberships with Contact Custom Fields Report for CiviCRM
+repo_url: https://github.com/agileware/au.com.agileware.membershipcustomfieldsreport
+site_description: 'A guide for the Memberships with Contact Custom Fields Report CiviCRM extension.'
+site_author: 'agileware'
+theme:
+  name: material
+
+nav:
+  - 'Introduction': README.md
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - def_list
+  - codehilite
+  - toc:
+      permalink: True
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tilde
+  - pymdownx.betterem
+  - pymdownx.mark
+
+plugins:
+  - search:
+      lang: en

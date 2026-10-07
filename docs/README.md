@@ -8,7 +8,7 @@ the standard membership report to expose those custom fields as selectable colum
 alongside contact, address, email, phone, membership, membership status, contribution/payment,
 and (where CiviCampaign is enabled) campaign details.
 
-The extension is licensed under [AGPL-3.0](LICENSE.txt).
+The extension is licensed under [AGPL-3.0](https://github.com/agileware/au.com.agileware.membershipcustomfieldsreport/blob/master/LICENSE.txt).
 
 ## Usage
 
@@ -102,4 +102,4 @@ services including:
 Support your Australian [CiviCRM](https://civicrm.org) developers,
 [contact Agileware](https://agileware.com.au/contact) today!
 
-![Agileware](logo/agileware-logo.png)
+![Agileware](https://github.com/agileware/au.com.agileware.membershipcustomfieldsreport/raw/master/docs/logo/agileware-logo.png)
