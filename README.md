@@ -21,10 +21,14 @@ UI:
 
 * **Contact fields** - basic contact fields, plus any custom fields attached to the
   **Individual** contact type.
-* **Membership fields** - membership type, start/join/end dates, source, membership owner ID,
-  plus any custom fields attached to **Membership**, filterable by membership type and
+* **Membership fields** - membership type, start/join/end dates, membership source, membership
+  owner ID, plus any custom fields attached to **Membership**, filterable by membership type and
   membership status.
-* **Membership status** - the current status of each membership, filterable by status.
+* **Membership status** - the current status of each membership, filterable by status
+  (multi-select) and by **Is Current Member** (yes/no). Is Current Member is true for statuses
+  CiviCRM treats as current (by default New, Current and Grace) and false for lapsed ones (by
+  default Expired, Pending, Cancelled, Deceased and Awaiting approval), so setting it to **Yes**
+  excludes expired memberships. With no filter set, all memberships are listed as before.
 * **Contact address, email and phone** - selectable columns for the contact's primary address,
   email and phone.
 * **Contribution/payment fields** - financial type, contribution status, payment instrument,
@@ -34,6 +38,10 @@ UI:
   contribution.
 * **Campaign** - if the CiviCampaign component is enabled and active campaigns exist, a Campaign
   column and filter are added to the membership fields.
+* **Sorting and grouping** - results can be ordered by contact name, membership type and the
+  other Order By options, and any of these can be checked as a **Section Header** to group the
+  results into headed, totaled sections (including more than one at once, such as Country and
+  then Membership Type).
 
 As with other CiviCRM reports, results can be grouped, sorted, exported (CSV/PDF), and saved or
 scheduled like any standard report instance.
@@ -48,7 +56,7 @@ active campaigns.
 
 ## Requirements
 
-* CiviCRM 5.82+ (as declared in `info.xml`; earlier versions may work but are untested)
+* CiviCRM 6.16+ (as declared in `info.xml`; earlier versions may work but are untested)
 * CiviMember component enabled
 
 ## Installation (Web UI)
